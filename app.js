@@ -1,3 +1,6 @@
+// 환경변수 로드
+require('dotenv').config();
+
 // Express 앱 설정
 const express = require('express');
 const cors = require('cors');
@@ -6,9 +9,12 @@ const bodyParser = require('body-parser');
 // 데이터베이스 및 모델 가져오기
 const { testConnection } = require('./config/database');
 const { UserRepository } = require('./models/User');
+const { IngredientRepository } = require('./models/Ingredient');
 
 // 라우트 가져오기
 const authRoutes = require('./routes/authRoutes');
+const ingredientRoutes = require('./routes/ingredientRoutes');
+const profileRoutes = require('./routes/profileRoutes');
 
 // Express 앱 생성
 const app = express();
@@ -27,8 +33,13 @@ const initializeDatabase = async () => {
     // 데이터베이스 연결 테스트
     const isConnected = await testConnection();
     if (isConnected) {
-      // users 테이블 생성
+      // 테이블 생성
       await UserRepository.createTable();
+      // 개발 환경일 때만 ingredients 테이블을 초기화(삭제 후 재생성)
+      if (process.env.NODE_ENV === 'development') {
+        await IngredientRepository.createTable();
+        console.log('🌿 개발 환경: ingredients 테이블을 초기화합니다.');
+      }
     }
   } catch (error) {
     console.error('데이터베이스 초기화 실패:', error.message);
@@ -43,13 +54,17 @@ app.get('/', (req, res) => {
     database: 'MySQL 연동',
     endpoints: {
       signup: 'POST /api/signup',
-      login: 'POST /api/login'
+      login: 'POST /api/login',
+      profile: 'GET /api/profile',
+      ingredients: 'POST /api/ingredients'
     }
   });
 });
 
 // API 라우트 설정
 app.use('/api', authRoutes);
+app.use('/api/ingredients', ingredientRoutes);
+app.use('/api/profile', profileRoutes);
 
 // 404 에러 처리
 app.use('*', (req, res) => {
