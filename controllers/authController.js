@@ -219,9 +219,86 @@ const updateProfile = async (req, res) => {
   }
 };
 
+// 사용자 상세 정보 수정 (알레르기, 조리도구)
+const updateDetailInfo = async (req, res) => {
+  try {
+    console.log('=== 상세 정보 수정 요청 ===');
+    console.log('요청 본문:', req.body);
+    console.log('사용자 ID:', req.user.id);
+
+    const { allergies, tools } = req.body;
+    const userId = req.user.id;
+
+    // 알레르기 정보 업데이트
+    if (allergies && Array.isArray(allergies)) {
+      console.log('알레르기 정보 업데이트 시작:', allergies);
+      const { AllergyRepository } = require('../models/Allergy');
+      await AllergyRepository.updateUserAllergies(userId, allergies);
+      console.log('알레르기 정보 업데이트 완료');
+    }
+
+    // 조리도구 정보 업데이트
+    if (tools && typeof tools === 'object') {
+      console.log('조리도구 정보 업데이트 시작:', tools);
+      const { ToolRepository } = require('../models/Tool');
+      const toolNames = Object.keys(tools).filter(key => tools[key] === true);
+      console.log('선택된 조리도구:', toolNames);
+      await ToolRepository.updateUserTools(userId, toolNames);
+      console.log('조리도구 정보 업데이트 완료');
+    }
+
+    console.log('상세 정보 수정 성공');
+    res.status(200).json({
+      success: true,
+      message: '상세 정보가 성공적으로 수정되었습니다.'
+    });
+
+  } catch (error) {
+    console.error('상세 정보 수정 오류:', error);
+    console.error('오류 스택:', error.stack);
+    res.status(500).json({
+      success: false,
+      message: '서버 오류가 발생했습니다.'
+    });
+  }
+};
+
+// 사용자 상세 정보 조회 (알레르기, 조리도구)
+const getDetailInfo = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    // 알레르기 정보 조회
+    const { AllergyRepository } = require('../models/Allergy');
+    const allergies = await AllergyRepository.findByUserId(userId);
+
+    // 조리도구 정보 조회
+    const { ToolRepository } = require('../models/Tool');
+    const tools = await ToolRepository.findByUserId(userId);
+
+    res.status(200).json({
+      success: true,
+      message: '상세 정보 조회 성공',
+      data: {
+        allergies: allergies,
+        tools: tools
+      }
+    });
+
+  } catch (error) {
+    console.error('상세 정보 조회 오류:', error);
+    res.status(500).json({
+      success: false,
+      message: '서버 오류가 발생했습니다.'
+    });
+  }
+};
+
 module.exports = {
   signup,
   login,
   getProfile,
-  updateProfile
+  updateProfile,
+  updateDetailInfo,
+  getDetailInfo
 };
